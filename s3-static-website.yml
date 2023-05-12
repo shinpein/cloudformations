@@ -1,0 +1,54 @@
+################################
+#### S3 static website
+################################
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DomainName:
+    Type: String
+    Description: 'The domain name to use for the static website. Example: example.com'
+Resources:
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Ref DomainName
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+  DNSRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      HostedZoneName: !Join ['', [!Ref DomainName, '.']]
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt S3Bucket.WebsiteURL
+        HostedZoneId: Z2M4EHUR26P7ZW
+  BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
+  IndexHtmlObject:
+    Type: 'AWS::S3::Object'
+    DependsOn: S3Bucket
+    Properties:
+      Bucket: !Ref S3Bucket
+      Key: index.html
+      ContentType: text/html
+      Content: |
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Test Page.</title>
+        </head>
+        <body>
+          Test Page.
+        </body>
+        </html>
